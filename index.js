@@ -47,7 +47,7 @@ client.on('messageCreate', async (message) => {
 
     try {
       await message.author.send(
-        `Your verification code is:\n**${code}**\n\nEnter !verify <YOUR CODE> in the DKL Roblox games chat to link your account.\nThis code expires in **5 minutes.**`
+        `Your verification code is:\n**${code}**\n\nEnter **!verify <YOUR CODE>** in the Death Korp Legions Roblox games chat to link your account.\nThis code expires in **5 minutes.**`
       );
 
       await message.reply("📩 I sent your verification code in DMs.");
