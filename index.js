@@ -65,6 +65,16 @@ client.on('messageCreate', async (message) => {
     return message.reply('Money is the great supreme leader of Death Korps Legion.');
   }
 
+  // ping
+  if (message.content === '!self destruct') {
+    return message.reply('**SELF DESTRUCT** COMMENCING. . .');
+  }
+
+  // ping
+  if (message.content === '!delete server') {
+    return message.reply('No.');
+  }
+
   // verify
   if (message.content === '!verify') {
     const code = 'VERIFY-' + Math.floor(10000 + Math.random() * 90000);
