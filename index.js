@@ -16,6 +16,13 @@ const client = new Client({
 const pendingCodes = new Map(); // code -> { discordId, expiresAt }
 const linkedAccounts = new Map(); // robloxId -> discordId
 
+// --------------------
+// KEEP-ALIVE ROUTE
+// --------------------
+app.get('/', (req, res) => {
+  res.send('DKL bot is alive');
+});
+
 // cleanup expired codes every 30s
 setInterval(() => {
   const now = Date.now();
@@ -27,7 +34,9 @@ setInterval(() => {
   }
 }, 30000);
 
+// --------------------
 // BOT COMMANDS
+// --------------------
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
@@ -47,19 +56,28 @@ client.on('messageCreate', async (message) => {
 
     try {
       await message.author.send(
-        `Your verification code is:\n**${code}**\n\nEnter **!verify <YOUR CODE>** in the Death Korp Legions Roblox games chat to link your account.\nThis code expires in **5 minutes.**`
+        `Your verification code is:\n**${code}**\n\nEnter **!verify <YOUR CODE>** in the Death Korp Legions Roblox game's chat to link your account.\nThis code expires in **5 minutes.**`
       );
 
-      await message.reply("📩 I sent your verification code in DMs.");
+      await message.reply('📩 I sent your verification code in DMs.');
     } catch (err) {
       await message.reply("❌ I couldn't DM you. Please enable DMs and try again.");
     }
   }
 });
 
+// --------------------
 // ROBLOX VERIFY ENDPOINT
+// --------------------
 app.post('/verify', (req, res) => {
   const { code, robloxUserId } = req.body;
+
+  if (!code || !robloxUserId) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing code or robloxUserId'
+    });
+  }
 
   const data = pendingCodes.get(code);
 
@@ -67,16 +85,17 @@ app.post('/verify', (req, res) => {
     return res.json({ success: false, message: 'Invalid or expired code' });
   }
 
-  linkedAccounts.set(robloxUserId, data.discordId);
-
+  linkedAccounts.set(String(robloxUserId), data.discordId);
   pendingCodes.delete(code);
 
   return res.json({ success: true });
 });
 
+// --------------------
 // CHECK LINK
+// --------------------
 app.get('/check/:robloxId', (req, res) => {
-  const discordId = linkedAccounts.get(req.params.robloxId);
+  const discordId = linkedAccounts.get(String(req.params.robloxId));
 
   res.json({
     linked: !!discordId,
@@ -84,10 +103,30 @@ app.get('/check/:robloxId', (req, res) => {
   });
 });
 
-// start API
-app.listen(3000, () => {
-  console.log('API running on port 3000');
+// --------------------
+// ERROR LOGGING
+// --------------------
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled promise rejection:', err);
 });
 
-// start bot
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+});
+
+client.once('ready', () => {
+  console.log(`Logged in as ${client.user.tag}`);
+});
+
+// --------------------
+// START API
+// --------------------
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`API running on port ${PORT}`);
+});
+
+// --------------------
+// START BOT
+// --------------------
 client.login(process.env.TOKEN);
