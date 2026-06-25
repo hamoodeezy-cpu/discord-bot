@@ -20,7 +20,7 @@ const linkedAccounts = new Map(); // robloxId -> discordId
 // KEEP-ALIVE ROUTE
 // --------------------
 app.get('/', (req, res) => {
-  res.send('DKL bot is alive');
+  res.send('DKL bot is alive - Running & developed by hamood1O');
 });
 
 // cleanup expired codes every 30s
@@ -43,6 +43,16 @@ client.on('messageCreate', async (message) => {
   // ping
   if (message.content === '!goo boi') {
     return message.reply('baa boi');
+  }
+
+  // ping
+  if (message.content === '!DKL') {
+    return message.reply('Hello, I am the DKL bot! I work for the greatest organization!');
+  }
+
+  // ping
+  if (message.content === '!hamood') {
+    return message.reply('hamooding');
   }
 
   // verify
