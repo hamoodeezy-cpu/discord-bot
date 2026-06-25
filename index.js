@@ -41,8 +41,8 @@ client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
   // ping
-  if (message.content === '!ping') {
-    return message.reply('Pong 🏓');
+  if (message.content === '!goo boi') {
+    return message.reply('baa boi');
   }
 
   // verify
