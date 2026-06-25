@@ -9,8 +9,8 @@ const client = new Client({
 });
 
 client.on('messageCreate', message => {
-  if (message.content === '!ping') {
-    message.reply('Pong!');
+  if (message.content === '!DKL') {
+    message.reply('AppleLarpTungTripleT!');
   }
 });
 
