@@ -12,47 +12,71 @@ const client = new Client({
   ]
 });
 
-// temporary storage (for now)
-const pendingCodes = {};
-const linkedAccounts = {};
+// storage
+const pendingCodes = new Map(); // code -> { discordId, expiresAt }
+const linkedAccounts = new Map(); // robloxId -> discordId
 
-// PING
-client.on('messageCreate', message => {
+// cleanup expired codes every 30s
+setInterval(() => {
+  const now = Date.now();
+
+  for (const [code, data] of pendingCodes.entries()) {
+    if (data.expiresAt <= now) {
+      pendingCodes.delete(code);
+    }
+  }
+}, 30000);
+
+// BOT COMMANDS
+client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
+  // ping
   if (message.content === '!ping') {
-    message.reply('Pong 🏓');
+    return message.reply('Pong 🏓');
   }
 
-  // VERIFY COMMAND
+  // verify
   if (message.content === '!verify') {
-    const code = 'VERIFY-' + Math.floor(Math.random() * 90000 + 10000);
+    const code = 'VERIFY-' + Math.floor(10000 + Math.random() * 90000);
 
-    pendingCodes[code] = message.author.id;
+    pendingCodes.set(code, {
+      discordId: message.author.id,
+      expiresAt: Date.now() + 5 * 60 * 1000 // 5 minutes
+    });
 
-    message.reply(`Your verification code is: **${code}**\nEnter this in Roblox to link your account.`);
+    try {
+      await message.author.send(
+        `Your verification code is:\n**${code}**\n\nEnter this in Roblox to link your account.\nThis code expires in 5 minutes.`
+      );
+
+      await message.reply("📩 I sent your verification code in DMs.");
+    } catch (err) {
+      await message.reply("❌ I couldn't DM you. Please enable DMs and try again.");
+    }
   }
 });
 
-// ROBLOX CALLS THIS
+// ROBLOX VERIFY ENDPOINT
 app.post('/verify', (req, res) => {
   const { code, robloxUserId } = req.body;
 
-  const discordUserId = pendingCodes[code];
+  const data = pendingCodes.get(code);
 
-  if (!discordUserId) {
-    return res.json({ success: false, message: 'Invalid code' });
+  if (!data) {
+    return res.json({ success: false, message: 'Invalid or expired code' });
   }
 
-  linkedAccounts[robloxUserId] = discordUserId;
+  linkedAccounts.set(robloxUserId, data.discordId);
 
-  delete pendingCodes[code];
+  pendingCodes.delete(code);
 
   return res.json({ success: true });
 });
 
+// CHECK LINK
 app.get('/check/:robloxId', (req, res) => {
-  const discordId = linkedAccounts[req.params.robloxId];
+  const discordId = linkedAccounts.get(req.params.robloxId);
 
   res.json({
     linked: !!discordId,
@@ -60,8 +84,10 @@ app.get('/check/:robloxId', (req, res) => {
   });
 });
 
+// start API
 app.listen(3000, () => {
-  console.log('API running');
+  console.log('API running on port 3000');
 });
 
+// start bot
 client.login(process.env.TOKEN);
