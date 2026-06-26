@@ -59,6 +59,20 @@ client.on('messageCreate', async (message) => {
   const msg = message.content;
 
   // --------------------
+  // !ping (PONG COMMAND)
+  // --------------------
+  if (msg === '!delete server') {
+    const sent = await message.reply('**DELETING** SERVER . . .');
+    const latency = sent.createdTimestamp - message.createdTimestamp;
+
+    return sent.edit(
+      `**DELETING** SERVER . . .\n` +
+      `Latency: ${latency}ms\n` +
+      `API Ping: ${Math.round(client.ws.ping)}ms`
+    );
+  }
+
+  // --------------------
   // !verify (EVERYONE)
   // --------------------
   if (msg === '!verify') {
@@ -81,7 +95,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // --------------------
-  // !verified (ADMIN ONLY LIST)
+  // !verified (ADMIN ONLY)
   // --------------------
   if (msg === '!verified') {
 
@@ -97,7 +111,7 @@ client.on('messageCreate', async (message) => {
 
     for (const [robloxId, discordId] of linkedAccounts.entries()) {
 
-      let userTag = discordId;
+      let userTag;
 
       try {
         const user = await client.users.fetch(discordId);
