@@ -227,6 +227,7 @@ app.get('/roles/:discordId', (req, res) => {
 // --------------------
 // BOT READY
 // --------------------
+let connection = null;
 client.once('ready', async () => {
   console.log(`Logged in as ${client.user.tag}`);
 
@@ -244,13 +245,13 @@ client.once('ready', async () => {
     return;
   }
 
-  let connection = joinVoiceChannel({
-    channelId: channel.id,
-    guildId: guild.id,
-    adapterCreator: guild.voiceAdapterCreator,
-    selfDeaf: false,
-    selfMute: false
-  });
+  connection = joinVoiceChannel({
+  channelId: channel.id,
+  guildId: guild.id,
+  adapterCreator: guild.voiceAdapterCreator,
+  selfDeaf: false,
+  selfMute: false
+});
 
   try {
     await entersState(connection, VoiceConnectionStatus.Ready, 30000);
