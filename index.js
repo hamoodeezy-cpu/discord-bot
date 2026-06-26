@@ -1,5 +1,6 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const express = require('express');
+const fs = require('fs');
 
 const app = express();
 app.use(express.json());
@@ -11,57 +12,73 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildMembers
   ]
 });
 
 // --------------------
-// STORAGE
+// FILE STORAGE
 // --------------------
-const pendingCodes = new Map();     // code -> { discordId, expiresAt }
-const linkedAccounts = new Map();   // robloxId -> discordId
-const userCerts = new Map();        // discordId -> ["JET", "HELICOPTER"]
+const FILE = './data.json';
+
+function loadDB() {
+  try {
+    return JSON.parse(fs.readFileSync(FILE));
+  } catch {
+    return { linked: {}, certs: {} };
+  }
+}
+
+function saveDB(data) {
+  fs.writeFileSync(FILE, JSON.stringify(data, null, 2));
+}
+
+let db = loadDB();
 
 // --------------------
-// CERT IDS (REFERENCE ONLY)
+// VERIFY CODES
 // --------------------
-const CERT_IDS = {
-  JET: "1519470704112832604",
-  TANK: "1519470833008119910",
-  HELICOPTER: "1519472942537248889",
-  HUMVEE: "1519473317168418958"
+const pendingCodes = new Map();
+
+// --------------------
+// ROLE IDS → CERT MAP (IMPORTANT FIX)
+// --------------------
+const ROLE_CERT_MAP = {
+  "1519470704112832604": "JET",
+  "1519470833008119910": "TANK",
+  "1519472942537248889": "HELICOPTER",
+  "1519473317168418958": "HUMVEE"
 };
 
 // --------------------
-// LOGGING
+// CHECK USER ROLES → UPDATE CERTS
 // --------------------
-app.use((req, res, next) => {
-  console.log(`[API] ${req.method} ${req.url}`);
-  next();
+async function syncUserCerts(guild, member) {
+  const certs = [];
+
+  member.roles.cache.forEach(role => {
+    const cert = ROLE_CERT_MAP[role.id];
+    if (cert) certs.push(cert);
+  });
+
+  db.certs[member.id] = certs;
+  saveDB(db);
+}
+
+// --------------------
+// VERIFY ROLE SYNC ON JOIN / UPDATE
+// --------------------
+client.on('guildMemberUpdate', async (oldMember, newMember) => {
+  await syncUserCerts(newMember.guild, newMember);
+});
+
+client.on('guildMemberAdd', async (member) => {
+  await syncUserCerts(member.guild, member);
 });
 
 // --------------------
-// HEALTH CHECK
-// --------------------
-app.get('/', (req, res) => {
-  res.send('DKL bot running - cert system active');
-});
-
-// --------------------
-// CLEAN EXPIRED CODES
-// --------------------
-setInterval(() => {
-  const now = Date.now();
-
-  for (const [code, data] of pendingCodes.entries()) {
-    if (data.expiresAt <= now) {
-      pendingCodes.delete(code);
-    }
-  }
-}, 30000);
-
-// --------------------
-// DISCORD COMMANDS
+// COMMANDS
 // --------------------
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
@@ -69,7 +86,7 @@ client.on('messageCreate', async (message) => {
   const msg = message.content;
 
   // --------------------
-  // !verify (EVERYONE)
+  // !verify
   // --------------------
   if (msg === '!verify') {
     const code = 'VERIFY-' + Math.floor(10000 + Math.random() * 90000);
@@ -80,49 +97,45 @@ client.on('messageCreate', async (message) => {
     });
 
     try {
-      await message.author.send(
-        `Your verification code:\n**${code}**\n\nUse in Roblox:\n!verify <CODE>`
-      );
-      return message.reply("📩 Check your DMs.");
+      await message.author.send(`Your code: **${code}**`);
+      return message.reply("📩 Check DMs.");
     } catch {
-      return message.reply("❌ Enable DMs to receive your code.");
+      return message.reply("❌ Enable DMs.");
     }
   }
 
   // --------------------
-  // !verified (ADMIN ONLY LIST)
+  // !verified (ADMIN ONLY)
   // --------------------
   if (msg === '!verified') {
 
     if (!message.member.permissions.has("Administrator")) {
-      return message.reply("❌ Only Discord administrators can use this command.");
+      return message.reply("❌ Admin only.");
     }
 
-    if (linkedAccounts.size === 0) {
+    const entries = Object.entries(db.linked);
+
+    if (entries.length === 0) {
       return message.reply("❌ No verified users found.");
     }
 
     let output = "📋 **Verified Users:**\n\n";
 
-    for (const [robloxId, discordId] of linkedAccounts.entries()) {
+    for (const [robloxId, discordId] of entries) {
 
-      let username = discordId;
+      let name = discordId;
 
       try {
         const user = await client.users.fetch(discordId);
-        username = user.username;
+        name = user.username;
       } catch {}
 
-      const certs = userCerts.get(discordId) || [];
+      const certs = db.certs[discordId] || [];
 
-      output += `Roblox ID: ${robloxId} → Discord: @${username} (${certs.join(", ") || "No Certs"})\n`;
+      output += `Roblox ID: ${robloxId} → @${name} (${certs.join(", ") || "No Certs"})\n`;
     }
 
-    if (output.length > 1900) {
-      output = output.slice(0, 1900) + "\n... (truncated)";
-    }
-
-    return message.reply(output);
+    return message.reply(output.slice(0, 1900));
   }
 });
 
@@ -132,17 +145,17 @@ client.on('messageCreate', async (message) => {
 app.post('/verify', (req, res) => {
   const { code, robloxUserId } = req.body;
 
-  if (!code || !robloxUserId) {
-    return res.json({ success: false });
-  }
-
   const data = pendingCodes.get(code);
   if (!data) {
     return res.json({ success: false });
   }
 
-  linkedAccounts.set(String(robloxUserId), data.discordId);
+  db.linked[String(robloxUserId)] = data.discordId;
+  saveDB(db);
+
   pendingCodes.delete(code);
+
+  console.log("LINKED:", robloxUserId, "→", data.discordId);
 
   return res.json({
     success: true,
@@ -151,53 +164,28 @@ app.post('/verify', (req, res) => {
 });
 
 // --------------------
-// ROLES / CERTS (ROBLOX USES THIS)
+// ROLES ENDPOINT (ROBLOX)
 // --------------------
 app.get('/roles/:discordId', (req, res) => {
   const discordId = String(req.params.discordId);
 
   const roles = [];
 
-  // VERIFIED CHECK
-  let linked = false;
-  for (const [, dId] of linkedAccounts.entries()) {
-    if (dId === discordId) {
-      linked = true;
-      break;
-    }
+  if (Object.values(db.linked).includes(discordId)) {
+    roles.push("verified");
   }
 
-  if (linked) roles.push("verified");
-
-  // CERTS
-  const certs = userCerts.get(discordId) || [];
-  for (const cert of certs) {
-    roles.push(cert);
-  }
+  const certs = db.certs[discordId] || [];
+  roles.push(...certs);
 
   res.json(roles);
-});
-
-// --------------------
-// CHECK LINK STATUS
-// --------------------
-app.get('/check/:robloxId', (req, res) => {
-  const discordId = linkedAccounts.get(String(req.params.robloxId));
-
-  res.json({
-    linked: !!discordId,
-    discordId: discordId || null
-  });
 });
 
 // --------------------
 // START SERVER
 // --------------------
 app.listen(3000, () => {
-  console.log("API running on port 3000");
+  console.log("Server running (ROLE ID CERT SYSTEM ACTIVE)");
 });
 
-// --------------------
-// LOGIN DISCORD BOT
-// --------------------
 client.login(process.env.TOKEN);
