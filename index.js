@@ -31,9 +31,9 @@ userCerts.set("discordId", ["JET", "HELICOPTER"])
 // --------------------
 const CERT_IDS = {
   JET: "1519470704112832604",
-  TANK: "TANK_CERT_ID",
-  HELICOPTER: "HELI_CERT_ID",
-  HUMVEE: "HUMVEE_CERT_ID"
+  TANK: "1519472942537248889",
+  HELICOPTER: "1519472942537248889",
+  HUMVEE: "1519473317168418958"
 };
 
 // --------------------
