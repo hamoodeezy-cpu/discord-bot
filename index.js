@@ -227,7 +227,7 @@ app.get('/roles/:discordId', (req, res) => {
 // --------------------
 // BOT READY
 // --------------------
-let connection = null;
+let connection = joinVoiceChannel({
 client.once('ready', async () => {
   console.log(`Logged in as ${client.user.tag}`);
 
