@@ -5,7 +5,7 @@ const app = express();
 app.use(express.json());
 
 // --------------------
-// DISCORD BOT
+// DISCORD BOT SETUP
 // --------------------
 const client = new Client({
   intents: [
@@ -16,16 +16,24 @@ const client = new Client({
 });
 
 // --------------------
-// STORAGE
+// MEMORY STORAGE (TEMP)
 // --------------------
-const pendingCodes = new Map(); // code -> { discordId, expiresAt }
-const linkedAccounts = new Map(); // robloxId -> discordId
+const pendingCodes = new Map();     // code -> { discordId, expiresAt }
+const linkedAccounts = new Map();   // robloxId -> discordId
+
+// --------------------
+// LOGGING MIDDLEWARE
+// --------------------
+app.use((req, res, next) => {
+  console.log(`[API] ${req.method} ${req.url}`);
+  next();
+});
 
 // --------------------
 // HEALTH CHECK
 // --------------------
 app.get('/', (req, res) => {
-  res.send('DKL bot is alive - Running & developed by hamood1O');
+  res.send('DKL bot is alive - verification system running');
 });
 
 // --------------------
@@ -50,16 +58,16 @@ client.on('messageCreate', async (message) => {
 
   const msg = message.content;
 
-  // ---------------- SIMPLE COMMANDS ----------------
+  // fun commands
   if (msg === '!goo boi') return message.reply('baa boi');
-  if (msg === '!DKL') return message.reply('Hello, I am the DKL bot! I work for the greatest organization!');
+  if (msg === '!DKL') return message.reply('DKL bot online.');
   if (msg === '!hamood') return message.reply('hamooding');
-  if (msg === '!paowies') return message.reply('paowies is a chud');
-  if (msg === '!money') return message.reply('Money is the great supreme leader of Death Korps Legion.');
-  if (msg === '!self destruct') return message.reply('**SELF DESTRUCT** COMMENCING...');
+  if (msg === '!money') return message.reply('Money is supreme.');
   if (msg === '!delete server') return message.reply('No.');
 
-  // ---------------- VERIFY COMMAND ----------------
+  // --------------------
+  // VERIFY COMMAND
+  // --------------------
   if (msg === '!verify') {
     const code = 'VERIFY-' + Math.floor(10000 + Math.random() * 90000);
 
@@ -70,40 +78,20 @@ client.on('messageCreate', async (message) => {
 
     try {
       await message.author.send(
-        `Your verification code is:\n**${code}**\n\nUse in Roblox:\n!verify <CODE>\n\nExpires in 5 minutes.`
+        `Your verification code:\n**${code}**\n\nUse in Roblox:\n!verify <CODE>\nExpires in 5 minutes.`
       );
 
       await message.reply('📩 Check your DMs for your code.');
-    } catch (err) {
-      await message.reply("❌ I couldn't DM you. Enable DMs and try again.");
+    } catch {
+      await message.reply("❌ Enable DMs to receive your code.");
     }
-  }
-
-  // ---------------- VIEW VERIFIED USERS ----------------
-  if (msg === '!verified') {
-    const entries = [...linkedAccounts.entries()];
-
-    if (entries.length === 0) {
-      return message.reply('No users are currently verified.');
-    }
-
-    const list = entries
-      .map(([robloxId, discordId]) =>
-        `Roblox ID: **${robloxId}** → Discord: <@${discordId}>`
-      )
-      .join('\n');
-
-    return message.reply('**Verified Users:**\n' + list);
   }
 });
 
 // --------------------
-// ROBLOX VERIFY ENDPOINT
+// VERIFY ENDPOINT (ROBLOX)
 // --------------------
 app.post('/verify', (req, res) => {
-  console.log('=== VERIFY REQUEST ===');
-  console.log(req.body);
-
   const { code, robloxUserId } = req.body;
 
   if (!code || !robloxUserId) {
@@ -116,8 +104,6 @@ app.post('/verify', (req, res) => {
   const data = pendingCodes.get(code);
 
   if (!data) {
-    console.log(`[FAIL] Invalid/expired code: ${code}`);
-
     return res.json({
       success: false,
       message: 'Invalid or expired code'
@@ -127,9 +113,12 @@ app.post('/verify', (req, res) => {
   linkedAccounts.set(String(robloxUserId), data.discordId);
   pendingCodes.delete(code);
 
-  console.log(`[SUCCESS] Roblox ${robloxUserId} linked to Discord ${data.discordId}`);
+  console.log(`[VERIFY] Roblox ${robloxUserId} linked to Discord ${data.discordId}`);
 
-  return res.json({ success: true });
+  return res.json({
+    success: true,
+    discordId: data.discordId
+  });
 });
 
 // --------------------
@@ -145,13 +134,41 @@ app.get('/check/:robloxId', (req, res) => {
 });
 
 // --------------------
+// ROLES SYSTEM (NEW)
+// --------------------
+app.get('/roles/:discordId', (req, res) => {
+  const discordId = String(req.params.discordId);
+
+  const roles = [];
+
+  // find linked roblox account
+  for (const [robloxId, dId] of linkedAccounts.entries()) {
+    if (dId === discordId) {
+      roles.push("verified");
+      break;
+    }
+  }
+
+  // OPTIONAL ADMIN ROLE (edit this)
+  const ADMIN_IDS = [
+    "YOUR_DISCORD_ID_HERE"
+  ];
+
+  if (ADMIN_IDS.includes(discordId)) {
+    roles.push("admin");
+  }
+
+  res.json(roles);
+});
+
+// --------------------
 // ERROR HANDLING
 // --------------------
 process.on('unhandledRejection', console.error);
 process.on('uncaughtException', console.error);
 
 // --------------------
-// READY EVENT
+// BOT READY
 // --------------------
 client.once('ready', () => {
   console.log(`Logged in as ${client.user.tag}`);
@@ -163,10 +180,10 @@ client.once('ready', () => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log('==============================');
-  console.log('API running on port', PORT);
+  console.log('================================');
+  console.log(`API running on port ${PORT}`);
   console.log('Verification system online');
-  console.log('==============================');
+  console.log('================================');
 });
 
 // --------------------
