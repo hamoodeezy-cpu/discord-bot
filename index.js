@@ -251,13 +251,15 @@ client.once('ready', async () => {
     console.log("🎧 Joined voice channel.");
 
     connection.on(VoiceConnectionStatus.Disconnected, () => {
-  console.log("⚠️ Disconnected from VC. Rejoining...");
+      console.log("⚠️ Disconnected from VC. Rejoining...");
 
-  setTimeout(() => {
-    if (!connection || connection.state.status === VoiceConnectionStatus.Destroyed) {
-      joinVC();
-    }
-  }, 3000);
+      setTimeout(() => {
+        joinVC();
+      }, 3000);
+    });
+  }
+
+  joinVC();
 });
       console.log("⚠️ Disconnected from VC. Rejoining...");
 
