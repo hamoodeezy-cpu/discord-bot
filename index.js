@@ -16,7 +16,7 @@ const client = new Client({
 });
 
 // --------------------
-// MEMORY STORAGE
+// STORAGE
 // --------------------
 const pendingCodes = new Map();     // code -> { discordId, expiresAt }
 const linkedAccounts = new Map();   // robloxId -> discordId
@@ -59,15 +59,6 @@ client.on('messageCreate', async (message) => {
   const msg = message.content;
 
   // --------------------
-  // SIMPLE TEST COMMANDS
-  // --------------------
-  if (msg === '!goo boi') return message.reply('baa boi');
-  if (msg === '!DKL') return message.reply('DKL bot online.');
-  if (msg === '!hamood') return message.reply('hamooding');
-  if (msg === '!money') return message.reply('Money is supreme.');
-  if (msg === '!delete server') return message.reply('No.');
-
-  // --------------------
   // !verify (EVERYONE)
   // --------------------
   if (msg === '!verify') {
@@ -83,14 +74,14 @@ client.on('messageCreate', async (message) => {
         `Your verification code:\n**${code}**\n\nUse in Roblox:\n!verify <CODE>\nExpires in 5 minutes.`
       );
 
-      await message.reply('📩 Check your DMs for your code.');
+      return message.reply('📩 Check your DMs for your code.');
     } catch {
-      await message.reply("❌ I couldn't DM you. Enable DMs and try again.");
+      return message.reply("❌ I couldn't DM you. Enable DMs and try again.");
     }
   }
 
   // --------------------
-  // !verified (ADMIN ONLY)
+  // !verified (ADMIN ONLY LIST)
   // --------------------
   if (msg === '!verified') {
 
@@ -98,20 +89,31 @@ client.on('messageCreate', async (message) => {
       return message.reply("❌ Only Discord administrators can use this command.");
     }
 
-    const discordId = message.author.id;
-
-    let isVerified = false;
-
-    for (const [, dId] of linkedAccounts.entries()) {
-      if (dId === discordId) {
-        isVerified = true;
-        break;
-      }
+    if (linkedAccounts.size === 0) {
+      return message.reply("❌ No verified users found.");
     }
 
-    return message.reply(
-      isVerified ? "✅ User is verified." : "❌ User is NOT verified."
-    );
+    let output = "📋 **Verified Users:**\n\n";
+
+    for (const [robloxId, discordId] of linkedAccounts.entries()) {
+
+      let userTag = discordId;
+
+      try {
+        const user = await client.users.fetch(discordId);
+        userTag = `@${user.username}`;
+      } catch {
+        userTag = `@Unknown`;
+      }
+
+      output += `Roblox ID: ${robloxId} → Discord: ${userTag}\n`;
+    }
+
+    if (output.length > 1900) {
+      output = output.slice(0, 1900) + "\n... (truncated)";
+    }
+
+    return message.reply(output);
   }
 });
 
@@ -149,7 +151,7 @@ app.post('/verify', (req, res) => {
 });
 
 // --------------------
-// CHECK LINK STATUS
+// CHECK STATUS
 // --------------------
 app.get('/check/:robloxId', (req, res) => {
   const discordId = linkedAccounts.get(String(req.params.robloxId));
@@ -183,12 +185,6 @@ app.get('/roles/:discordId', (req, res) => {
 
   res.json(roles);
 });
-
-// --------------------
-// ERROR HANDLING
-// --------------------
-process.on('unhandledRejection', console.error);
-process.on('uncaughtException', console.error);
 
 // --------------------
 // BOT READY
