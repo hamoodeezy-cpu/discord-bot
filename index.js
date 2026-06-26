@@ -58,22 +58,22 @@ client.on('messageCreate', async (message) => {
 
   const msg = message.content;
 
-  // --------------------
-  // !ping (PONG COMMAND)
-  // --------------------
   if (msg === '!delete server') {
-    const sent = await message.reply('**DELETING** SERVER . . .');
-    const latency = sent.createdTimestamp - message.createdTimestamp;
 
-    return sent.edit(
-      `**DELETING** SERVER . . .\n` +
-      `Latency: ${latency}ms\n` +
-      `API Ping: ${Math.round(client.ws.ping)}ms`
-    );
+  if (!message.member.permissions.has("Administrator")) {
+    return message.reply("❌ Only Administrators can use this command.");
   }
 
+  return message.reply('**DELETING** SERVER . . .');
+}
+
 if (msg === '!restore server') {
-  return message.reply('**RESTORING** SERVER. . .');
+
+  if (!message.member.permissions.has("Administrator")) {
+    return message.reply("❌ Only Administrators can use this command.");
+  }
+
+  return message.reply('**RESTORING** SERVER . . .');
 }
 
   // --------------------
