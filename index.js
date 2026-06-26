@@ -72,6 +72,10 @@ client.on('messageCreate', async (message) => {
     );
   }
 
+if (msg === '!restore server') {
+  return message.reply('**RESTORING** SERVER. . .');
+}
+
   // --------------------
   // !verify (EVERYONE)
   // --------------------
