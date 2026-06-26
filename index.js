@@ -4,6 +4,9 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
+// --------------------
+// DISCORD CLIENT
+// --------------------
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -15,19 +18,12 @@ const client = new Client({
 // --------------------
 // STORAGE
 // --------------------
-const pendingCodes = new Map();     // code -> discordId
+const pendingCodes = new Map();     // code -> { discordId, expiresAt }
 const linkedAccounts = new Map();   // robloxId -> discordId
-
-// CERT DATABASE (Discord ID -> certs)
-const userCerts = new Map();
-
-/*
-Example:
-userCerts.set("discordId", ["JET", "HELICOPTER"])
-*/
+const userCerts = new Map();        // discordId -> ["JET", "HELICOPTER"]
 
 // --------------------
-// YOUR CERT IDS (REFERENCE ONLY)
+// CERT IDS (REFERENCE ONLY)
 // --------------------
 const CERT_IDS = {
   JET: "1519470704112832604",
@@ -37,13 +33,44 @@ const CERT_IDS = {
 };
 
 // --------------------
-// VERIFY SYSTEM
+// LOGGING
+// --------------------
+app.use((req, res, next) => {
+  console.log(`[API] ${req.method} ${req.url}`);
+  next();
+});
+
+// --------------------
+// HEALTH CHECK
+// --------------------
+app.get('/', (req, res) => {
+  res.send('DKL bot running - cert system active');
+});
+
+// --------------------
+// CLEAN EXPIRED CODES
+// --------------------
+setInterval(() => {
+  const now = Date.now();
+
+  for (const [code, data] of pendingCodes.entries()) {
+    if (data.expiresAt <= now) {
+      pendingCodes.delete(code);
+    }
+  }
+}, 30000);
+
+// --------------------
+// DISCORD COMMANDS
 // --------------------
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
   const msg = message.content;
 
+  // --------------------
+  // !verify (EVERYONE)
+  // --------------------
   if (msg === '!verify') {
     const code = 'VERIFY-' + Math.floor(10000 + Math.random() * 90000);
 
@@ -52,24 +79,62 @@ client.on('messageCreate', async (message) => {
       expiresAt: Date.now() + 5 * 60 * 1000
     });
 
-    await message.author.send(`Your code: **${code}**`);
-    return message.reply("Check DMs.");
+    try {
+      await message.author.send(
+        `Your verification code:\n**${code}**\n\nUse in Roblox:\n!verify <CODE>`
+      );
+      return message.reply("📩 Check your DMs.");
+    } catch {
+      return message.reply("❌ Enable DMs to receive your code.");
+    }
   }
 
-  // GIVE TEST CERTS (TEMP COMMAND FOR YOU)
-  if (msg === '!givejet') {
-    const certs = userCerts.get(message.author.id) || [];
-    certs.push("JET");
-    userCerts.set(message.author.id, certs);
-    return message.reply("JET CERT GRANTED");
+  // --------------------
+  // !verified (ADMIN ONLY LIST)
+  // --------------------
+  if (msg === '!verified') {
+
+    if (!message.member.permissions.has("Administrator")) {
+      return message.reply("❌ Only Discord administrators can use this command.");
+    }
+
+    if (linkedAccounts.size === 0) {
+      return message.reply("❌ No verified users found.");
+    }
+
+    let output = "📋 **Verified Users:**\n\n";
+
+    for (const [robloxId, discordId] of linkedAccounts.entries()) {
+
+      let username = discordId;
+
+      try {
+        const user = await client.users.fetch(discordId);
+        username = user.username;
+      } catch {}
+
+      const certs = userCerts.get(discordId) || [];
+
+      output += `Roblox ID: ${robloxId} → Discord: @${username} (${certs.join(", ") || "No Certs"})\n`;
+    }
+
+    if (output.length > 1900) {
+      output = output.slice(0, 1900) + "\n... (truncated)";
+    }
+
+    return message.reply(output);
   }
 });
 
 // --------------------
-// ROBLOX VERIFY
+// ROBLOX VERIFY ENDPOINT
 // --------------------
 app.post('/verify', (req, res) => {
   const { code, robloxUserId } = req.body;
+
+  if (!code || !robloxUserId) {
+    return res.json({ success: false });
+  }
 
   const data = pendingCodes.get(code);
   if (!data) {
@@ -79,14 +144,14 @@ app.post('/verify', (req, res) => {
   linkedAccounts.set(String(robloxUserId), data.discordId);
   pendingCodes.delete(code);
 
-  res.json({
+  return res.json({
     success: true,
     discordId: data.discordId
   });
 });
 
 // --------------------
-// ROLES / CERTS ENDPOINT
+// ROLES / CERTS (ROBLOX USES THIS)
 // --------------------
 app.get('/roles/:discordId', (req, res) => {
   const discordId = String(req.params.discordId);
@@ -104,9 +169,8 @@ app.get('/roles/:discordId', (req, res) => {
 
   if (linked) roles.push("verified");
 
-  // CERTS CHECK
+  // CERTS
   const certs = userCerts.get(discordId) || [];
-
   for (const cert of certs) {
     roles.push(cert);
   }
@@ -115,7 +179,7 @@ app.get('/roles/:discordId', (req, res) => {
 });
 
 // --------------------
-// CHECK
+// CHECK LINK STATUS
 // --------------------
 app.get('/check/:robloxId', (req, res) => {
   const discordId = linkedAccounts.get(String(req.params.robloxId));
@@ -127,10 +191,13 @@ app.get('/check/:robloxId', (req, res) => {
 });
 
 // --------------------
-// START
+// START SERVER
 // --------------------
 app.listen(3000, () => {
-  console.log("Server running");
+  console.log("API running on port 3000");
 });
 
+// --------------------
+// LOGIN DISCORD BOT
+// --------------------
 client.login(process.env.TOKEN);
