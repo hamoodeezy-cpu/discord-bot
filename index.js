@@ -240,10 +240,8 @@ client.once('ready', async () => {
   if (!channel) return console.log("❌ Voice channel not found.");
 
   function joinVC() {
-  if (connection) {
-    connection.destroy();
-    connection = null;
-  }
+  if (connection) connection.destroy();
+connection = null;
 
   connection = joinVoiceChannel({
     channelId: channel.id,
@@ -257,14 +255,17 @@ client.once('ready', async () => {
 
   connection.removeAllListeners(VoiceConnectionStatus.Disconnected);
 
-  connection.on(VoiceConnectionStatus.Disconnected, () => {
-    console.log("⚠️ Disconnected from VC. Rejoining...");
+  connection.on(VoiceConnectionStatus.Disconnected, async () => {
+  console.log("⚠️ Disconnected from VC. Rejoining...");
 
-    setTimeout(() => {
-      joinVC();
-    }, 3000);
-  });
-}
+  try {
+    await entersState(connection, VoiceConnectionStatus.Disconnected, 5000);
+  } catch {}
+
+  setTimeout(() => {
+    joinVC();
+  }, 3000);
+});
 
   try {
     joinVC();
