@@ -16,7 +16,8 @@ const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildVoiceStates
   ]
 });
 
@@ -250,6 +251,14 @@ client.once('ready', async () => {
     console.log("🎧 Joined voice channel.");
 
     connection.on(VoiceConnectionStatus.Disconnected, () => {
+  console.log("⚠️ Disconnected from VC. Rejoining...");
+
+  setTimeout(() => {
+    if (!connection || connection.state.status === VoiceConnectionStatus.Destroyed) {
+      joinVC();
+    }
+  }, 3000);
+});
       console.log("⚠️ Disconnected from VC. Rejoining...");
 
       setTimeout(() => {
