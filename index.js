@@ -227,72 +227,59 @@ app.get('/roles/:discordId', (req, res) => {
 // --------------------
 // BOT READY
 // --------------------
-let connection = joinVoiceChannel({
+let connection = null;
+
 client.once('ready', async () => {
   console.log(`Logged in as ${client.user.tag}`);
 
   const guild = client.guilds.cache.get("1302283181998997616");
-
-  if (!guild) {
-    console.log("❌ Server not found.");
-    return;
-  }
+  if (!guild) return console.log("❌ Server not found.");
 
   const channel = guild.channels.cache.get("1520098207550406837");
+  if (!channel) return console.log("❌ Voice channel not found.");
 
-  if (!channel) {
-    console.log("❌ Voice channel not found.");
-    return;
+  function joinVC() {
+    connection = joinVoiceChannel({
+      channelId: channel.id,
+      guildId: guild.id,
+      adapterCreator: guild.voiceAdapterCreator,
+      selfDeaf: false,
+      selfMute: false
+    });
+
+    console.log("🎧 Joined voice channel.");
+
+    connection.on(VoiceConnectionStatus.Disconnected, () => {
+      console.log("⚠️ Disconnected from VC. Rejoining...");
+
+      setTimeout(() => {
+        try {
+          joinVC();
+        } catch (err) {
+          console.error("VC reconnect failed:", err);
+        }
+      }, 3000);
+    });
   }
 
-  connection = joinVoiceChannel({
-  channelId: channel.id,
-  guildId: guild.id,
-  adapterCreator: guild.voiceAdapterCreator,
-  selfDeaf: false,
-  selfMute: false
-});
-
   try {
-    await entersState(connection, VoiceConnectionStatus.Ready, 30000);
-    console.log("✅ Joined voice channel.");
+    await entersState(
+      joinVoiceChannel({
+        channelId: channel.id,
+        guildId: guild.id,
+        adapterCreator: guild.voiceAdapterCreator,
+        selfDeaf: false,
+        selfMute: false
+      }),
+      VoiceConnectionStatus.Ready,
+      30000
+    );
+
+    joinVC();
+
   } catch (err) {
     console.error("Failed to join VC:", err);
   }
-
-  connection.on(VoiceConnectionStatus.Disconnected, () => {
-  console.log("⚠️ Disconnected from VC. Rejoining...");
-
-  setTimeout(() => {
-    try {
-      connection = joinVoiceChannel({
-        channelId: channel.id,
-        guildId: guild.id,
-        adapterCreator: guild.voiceAdapterCreator,
-        selfDeaf: false,
-        selfMute: false
-      });
-    } catch (err) {
-      console.error("VC reconnect failed:", err);
-    }
-  }, 3000);
-});
-    console.log("⚠️ Disconnected from VC. Reconnecting...");
-
-    try {
-      await entersState(connection, VoiceConnectionStatus.Signalling, 5000);
-    } catch {
-      connection.destroy();
-
-      connection = joinVoiceChannel({
-        channelId: channel.id,
-        guildId: guild.id,
-        adapterCreator: guild.voiceAdapterCreator,
-        selfDeaf: false,
-        selfMute: false
-      });
-    }
-  });
 });
 
 // --------------------
