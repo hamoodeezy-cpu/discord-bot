@@ -263,20 +263,7 @@ client.once('ready', async () => {
   }
 
   try {
-    await entersState(
-      joinVoiceChannel({
-        channelId: channel.id,
-        guildId: guild.id,
-        adapterCreator: guild.voiceAdapterCreator,
-        selfDeaf: false,
-        selfMute: false
-      }),
-      VoiceConnectionStatus.Ready,
-      30000
-    );
-
     joinVC();
-
   } catch (err) {
     console.error("Failed to join VC:", err);
   }
