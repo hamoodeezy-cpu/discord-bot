@@ -5,7 +5,7 @@ const app = express();
 app.use(express.json());
 
 // --------------------
-// DISCORD BOT SETUP
+// DISCORD BOT
 // --------------------
 const client = new Client({
   intents: [
@@ -16,13 +16,13 @@ const client = new Client({
 });
 
 // --------------------
-// MEMORY STORAGE (TEMP)
+// MEMORY STORAGE
 // --------------------
 const pendingCodes = new Map();     // code -> { discordId, expiresAt }
 const linkedAccounts = new Map();   // robloxId -> discordId
 
 // --------------------
-// LOGGING MIDDLEWARE
+// LOGGING
 // --------------------
 app.use((req, res, next) => {
   console.log(`[API] ${req.method} ${req.url}`);
@@ -37,7 +37,7 @@ app.get('/', (req, res) => {
 });
 
 // --------------------
-// CLEANUP EXPIRED CODES
+// CLEAN EXPIRED CODES
 // --------------------
 setInterval(() => {
   const now = Date.now();
@@ -45,7 +45,7 @@ setInterval(() => {
   for (const [code, data] of pendingCodes.entries()) {
     if (data.expiresAt <= now) {
       pendingCodes.delete(code);
-      console.log(`[CLEANUP] Removed expired code: ${code}`);
+      console.log(`[CLEANUP] Expired code removed: ${code}`);
     }
   }
 }, 30000);
@@ -58,7 +58,9 @@ client.on('messageCreate', async (message) => {
 
   const msg = message.content;
 
-  // fun commands
+  // --------------------
+  // SIMPLE TEST COMMANDS
+  // --------------------
   if (msg === '!goo boi') return message.reply('baa boi');
   if (msg === '!DKL') return message.reply('DKL bot online.');
   if (msg === '!hamood') return message.reply('hamooding');
@@ -66,7 +68,7 @@ client.on('messageCreate', async (message) => {
   if (msg === '!delete server') return message.reply('No.');
 
   // --------------------
-  // VERIFY COMMAND
+  // !verify (EVERYONE)
   // --------------------
   if (msg === '!verify') {
     const code = 'VERIFY-' + Math.floor(10000 + Math.random() * 90000);
@@ -83,13 +85,38 @@ client.on('messageCreate', async (message) => {
 
       await message.reply('📩 Check your DMs for your code.');
     } catch {
-      await message.reply("❌ Enable DMs to receive your code.");
+      await message.reply("❌ I couldn't DM you. Enable DMs and try again.");
     }
+  }
+
+  // --------------------
+  // !verified (ADMIN ONLY)
+  // --------------------
+  if (msg === '!verified') {
+
+    if (!message.member.permissions.has("Administrator")) {
+      return message.reply("❌ Only Discord administrators can use this command.");
+    }
+
+    const discordId = message.author.id;
+
+    let isVerified = false;
+
+    for (const [, dId] of linkedAccounts.entries()) {
+      if (dId === discordId) {
+        isVerified = true;
+        break;
+      }
+    }
+
+    return message.reply(
+      isVerified ? "✅ User is verified." : "❌ User is NOT verified."
+    );
   }
 });
 
 // --------------------
-// VERIFY ENDPOINT (ROBLOX)
+// ROBLOX VERIFY ENDPOINT
 // --------------------
 app.post('/verify', (req, res) => {
   const { code, robloxUserId } = req.body;
@@ -113,7 +140,7 @@ app.post('/verify', (req, res) => {
   linkedAccounts.set(String(robloxUserId), data.discordId);
   pendingCodes.delete(code);
 
-  console.log(`[VERIFY] Roblox ${robloxUserId} linked to Discord ${data.discordId}`);
+  console.log(`[VERIFY] Roblox ${robloxUserId} → Discord ${data.discordId}`);
 
   return res.json({
     success: true,
@@ -134,25 +161,21 @@ app.get('/check/:robloxId', (req, res) => {
 });
 
 // --------------------
-// ROLES SYSTEM (NEW)
+// ROLES SYSTEM
 // --------------------
 app.get('/roles/:discordId', (req, res) => {
   const discordId = String(req.params.discordId);
 
   const roles = [];
 
-  // find linked roblox account
-  for (const [robloxId, dId] of linkedAccounts.entries()) {
+  for (const [, dId] of linkedAccounts.entries()) {
     if (dId === discordId) {
       roles.push("verified");
       break;
     }
   }
 
-  // OPTIONAL ADMIN ROLE (edit this)
-  const ADMIN_IDS = [
-    "YOUR_DISCORD_ID_HERE"
-  ];
+  const ADMIN_IDS = ["YOUR_DISCORD_ID_HERE"];
 
   if (ADMIN_IDS.includes(discordId)) {
     roles.push("admin");
@@ -182,7 +205,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log('================================');
   console.log(`API running on port ${PORT}`);
-  console.log('Verification system online');
+  console.log('Verification system ready');
   console.log('================================');
 });
 
