@@ -261,17 +261,6 @@ client.once('ready', async () => {
 
   joinVC();
 });
-      console.log("⚠️ Disconnected from VC. Rejoining...");
-
-      setTimeout(() => {
-        try {
-          joinVC();
-        } catch (err) {
-          console.error("VC reconnect failed:", err);
-        }
-      }, 3000);
-    });
-  }
 
   try {
     joinVC();
