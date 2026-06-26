@@ -5,8 +5,14 @@ const app = express();
 const {
   joinVoiceChannel,
   VoiceConnectionStatus,
-  entersState
+  entersState,
+  createAudioPlayer,
+  createAudioResource,
+  AudioPlayerStatus,
+  NoSubscriberBehavior
 } = require('@discordjs/voice');
+
+const fs = require('fs');
 app.use(express.json());
 
 // --------------------
@@ -59,42 +65,99 @@ setInterval(() => {
 // --------------------
 // DISCORD COMMANDS
 // --------------------
+let connection;
+let player;
+
+let loopEnabled = false;
+let currentResource = null;
+
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
   const msg = message.content;
 
+  // ❌ DELETE SERVER (admin only)
   if (msg === '!delete server') {
-
-  if (!message.member.permissions.has("Administrator")) {
-    return message.reply("❌ Only Administrators can use this command.");
+    if (!message.member.permissions.has("Administrator")) {
+      return message.reply("❌ Only Administrators can use this command.");
+    }
+    return message.reply("**DELETING** SERVER . . .");
   }
 
-  return message.reply('**DELETING** SERVER . . .');
-}
-
-if (msg === '!restore server') {
-
-  if (!message.member.permissions.has("Administrator")) {
-    return message.reply("❌ Only Administrators can use this command.");
+  // ♻️ RESTORE SERVER (admin only)
+  if (msg === '!restore server') {
+    if (!message.member.permissions.has("Administrator")) {
+      return message.reply("❌ Only Administrators can use this command.");
+    }
+    return message.reply("**RESTORING** SERVER . . .");
   }
 
-  return message.reply('**RESTORING** SERVER . . .');
-}
+  // 😄 FUN
+  if (msg === '!hamood') {
+    return message.reply('hamooding!');
+  }
 
-if (msg === '!hamood') {
-  return message.reply('hamooding!');
-}
-
+  // 💰 MONEY (admin only)
   if (msg === '!money') {
-
-  if (!message.member.permissions.has("Administrator")) {
-    return message.reply("❌ Only Administrators can use this command.");
+    if (!message.member.permissions.has("Administrator")) {
+      return message.reply("❌ Only Administrators can use this command.");
+    }
+    return message.reply('<@927919176595697714>');
   }
 
-  return message.reply('<@927919176595697714>');
+if (msg === '!play') {
+  const channel = message.member.voice.channel;
+
+  if (!channel) {
+    return message.reply(". . .");
+  }
+
+  connection = joinVoiceChannel({
+    channelId: channel.id,
+    guildId: message.guild.id,
+    adapterCreator: message.guild.voiceAdapterCreator,
+  });
+
+  player = createAudioPlayer();
+
+  const playSong = () => {
+    currentResource = createAudioResource('./music.mp3');
+    player.play(currentResource);
+  };
+
+  connection.subscribe(player);
+  playSong();
+
+  // 🔁 LOOP HANDLER
+  player.on('stateChange', (oldState, newState) => {
+    if (newState.status === 'idle' && loopEnabled) {
+      playSong();
+    }
+  });
+
+  return message.reply(". . .");
 }
 
+  if (msg === '!loop on') {
+  loopEnabled = true;
+  return message.reply(". . .");
+}
+
+if (msg === '!loop off') {
+  loopEnabled = false;
+  return message.reply(". . .");
+}
+
+  // ⛔ STOP MUSIC
+  if (msg === '!stop') {
+    if (player) player.stop();
+    if (connection) connection.destroy();
+
+    return message.reply(". . .");
+  }
+});
+
+  
   
 
   // --------------------
@@ -226,10 +289,8 @@ app.get('/roles/:discordId', (req, res) => {
 });
 
 // --------------------
-// BOT READY
+// READY EVENT
 // --------------------
-let connection = null;
-
 client.once('ready', async () => {
   console.log(`Logged in as ${client.user.tag}`);
 
@@ -239,36 +300,17 @@ client.once('ready', async () => {
   const channel = guild.channels.cache.get("1520098207550406837");
   if (!channel) return console.log("❌ Voice channel not found.");
 
-  function joinVC() {
-  if (connection) connection.destroy();
-connection = null;
-
-  connection = joinVoiceChannel({
-    channelId: channel.id,
-    guildId: guild.id,
-    adapterCreator: guild.voiceAdapterCreator,
-    selfDeaf: false,
-    selfMute: false
-  });
-
-  console.log("🎧 Joined voice channel.");
-
-  connection.removeAllListeners(VoiceConnectionStatus.Disconnected);
-
-  connection.on(VoiceConnectionStatus.Disconnected, async () => {
-  console.log("⚠️ Disconnected from VC. Rejoining...");
-
   try {
-    await entersState(connection, VoiceConnectionStatus.Disconnected, 5000);
-  } catch {}
+    const connection = joinVoiceChannel({
+      channelId: channel.id,
+      guildId: guild.id,
+      adapterCreator: guild.voiceAdapterCreator,
+    });
 
-  setTimeout(() => {
-    joinVC();
-  }, 3000);
-});
+    const player = createAudioPlayer();
+    connection.subscribe(player);
 
-  try {
-    joinVC();
+    console.log("🎧 Joined VC on startup");
   } catch (err) {
     console.error("Failed to join VC:", err);
   }
