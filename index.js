@@ -240,27 +240,31 @@ client.once('ready', async () => {
   if (!channel) return console.log("❌ Voice channel not found.");
 
   function joinVC() {
-    connection = joinVoiceChannel({
-      channelId: channel.id,
-      guildId: guild.id,
-      adapterCreator: guild.voiceAdapterCreator,
-      selfDeaf: false,
-      selfMute: false
-    });
-
-    console.log("🎧 Joined voice channel.");
-
-    connection.on(VoiceConnectionStatus.Disconnected, () => {
-      console.log("⚠️ Disconnected from VC. Rejoining...");
-
-      setTimeout(() => {
-        joinVC();
-      }, 3000);
-    });
+  if (connection) {
+    connection.destroy();
+    connection = null;
   }
 
-  joinVC();
-});
+  connection = joinVoiceChannel({
+    channelId: channel.id,
+    guildId: guild.id,
+    adapterCreator: guild.voiceAdapterCreator,
+    selfDeaf: false,
+    selfMute: false
+  });
+
+  console.log("🎧 Joined voice channel.");
+
+  connection.removeAllListeners(VoiceConnectionStatus.Disconnected);
+
+  connection.on(VoiceConnectionStatus.Disconnected, () => {
+    console.log("⚠️ Disconnected from VC. Rejoining...");
+
+    setTimeout(() => {
+      joinVC();
+    }, 3000);
+  });
+}
 
   try {
     joinVC();
