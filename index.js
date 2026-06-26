@@ -155,10 +155,6 @@ if (msg === '!loop off') {
 
     return message.reply(". . .");
   }
-});
-
-  
-  
 
   // --------------------
   // !verify (EVERYONE)
