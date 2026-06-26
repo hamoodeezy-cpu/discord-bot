@@ -260,7 +260,23 @@ client.once('ready', async () => {
     console.error("Failed to join VC:", err);
   }
 
-  connection.on(VoiceConnectionStatus.Disconnected, async () => {
+  connection.on(VoiceConnectionStatus.Disconnected, () => {
+  console.log("⚠️ Disconnected from VC. Rejoining...");
+
+  setTimeout(() => {
+    try {
+      connection = joinVoiceChannel({
+        channelId: channel.id,
+        guildId: guild.id,
+        adapterCreator: guild.voiceAdapterCreator,
+        selfDeaf: false,
+        selfMute: false
+      });
+    } catch (err) {
+      console.error("VC reconnect failed:", err);
+    }
+  }, 3000);
+});
     console.log("⚠️ Disconnected from VC. Reconnecting...");
 
     try {
