@@ -76,6 +76,21 @@ if (msg === '!restore server') {
   return message.reply('**RESTORING** SERVER . . .');
 }
 
+if (msg === '!hamood') {
+  return message.reply('hamooding!');
+}
+
+  if (msg === '!money') {
+
+  if (!message.member.permissions.has("Administrator")) {
+    return message.reply("❌ Only Administrators can use this command.");
+  }
+
+  return message.reply('<@927919176595697714>');
+}
+
+  
+
   // --------------------
   // !verify (EVERYONE)
   // --------------------
