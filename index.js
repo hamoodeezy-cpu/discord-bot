@@ -307,13 +307,13 @@ client.user.setPresence({
   if (!channel) return console.log("❌ Voice channel not found.");
 
   try {
-    const connection = joinVoiceChannel({
+     connection = joinVoiceChannel({
       channelId: channel.id,
       guildId: guild.id,
       adapterCreator: guild.voiceAdapterCreator,
     });
 
-    const player = createAudioPlayer();
+     player = createAudioPlayer();
     connection.subscribe(player);
 
     console.log("🎧 Joined VC on startup");
@@ -332,6 +332,28 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`API running on port ${PORT}`);
   console.log('Verification system ready');
   console.log('================================');
+});
+
+client.on('voiceStateUpdate', (oldState, newState) => {
+  if (
+    oldState.member.id === client.user.id &&
+    oldState.channelId &&
+    !newState.channelId
+  ) {
+    console.log("Bot was disconnected. Rejoining in 2 seconds...");
+
+    setTimeout(() => {
+      connection = joinVoiceChannel({
+        channelId: "1520098207550406837",
+        guildId: "1302283181998997616",
+        adapterCreator: oldState.guild.voiceAdapterCreator,
+      });
+
+      if (player) {
+        connection.subscribe(player);
+      }
+    }, 2000);
+  }
 });
 
 // --------------------
