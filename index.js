@@ -293,7 +293,7 @@ client.once('ready', async () => {
 client.user.setPresence({
   activities: [
     {
-      name: "the DKL Server",
+      name: "Death Korps Legion | Hamood",
       type: ActivityType.Watching,
     },
   ],
