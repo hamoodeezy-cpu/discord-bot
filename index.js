@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, ActivityType } = require('discord.js');
 const express = require('express');
 
 const app = express();
@@ -290,6 +290,16 @@ app.get('/roles/:discordId', (req, res) => {
 client.once('ready', async () => {
   console.log(`Logged in as ${client.user.tag}`);
 
+client.user.setPresence({
+  activities: [
+    {
+      name: "the DKL Server",
+      type: ActivityType.Watching,
+    },
+  ],
+  status: "online",
+});
+  
   const guild = client.guilds.cache.get("1302283181998997616");
   if (!guild) return console.log("❌ Server not found.");
 
