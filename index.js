@@ -97,7 +97,7 @@ client.on('messageCreate', async (message) => {
     return message.reply('hamooding!');
   }
 
-   if (msg === '@DKL Automation') {
+   if (msg === '<@1316492330039115849>') {
     return message.reply('DKL Automation at your service!');
   }
 
