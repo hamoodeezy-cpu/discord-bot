@@ -112,32 +112,30 @@ if (msg === '!play') {
     return message.reply(". . .");
   }
 
-  connection = joinVoiceChannel({
-    channelId: channel.id,
-    guildId: message.guild.id,
-    adapterCreator: message.guild.voiceAdapterCreator,
-  });
+  // Join VC if needed
+  if (!connection || connection.joinConfig.channelId !== channel.id) {
+    connection = joinVoiceChannel({
+      channelId: channel.id,
+      guildId: message.guild.id,
+      adapterCreator: message.guild.voiceAdapterCreator,
+    });
+  }
 
-  player = createAudioPlayer();
+  // Create player once
+  if (!player) {
+    player = createAudioPlayer();
 
-  const playSong = () => {
-    currentResource = createAudioResource('./music.mp3');
-    player.play(currentResource);
-  };
+    connection.subscribe(player);
 
-  connection.subscribe(player);
-  playSong();
+  }
 
-  // 🔁 LOOP HANDLER
-  player.on('stateChange', (oldState, newState) => {
-    if (newState.status === 'idle' && loopEnabled) {
-      playSong();
-    }
-  });
+  // Always restart song safely
+  const resource = createAudioResource('./music.mp3');
+  player.play(resource);
 
   return message.reply(". . .");
 }
-
+ 
   if (msg === '!loop on') {
   loopEnabled = true;
   return message.reply(". . .");
@@ -149,12 +147,15 @@ if (msg === '!loop off') {
 }
 
   // ⛔ STOP MUSIC
-  if (msg === '!stop') {
-    if (player) player.stop();
-    if (connection) connection.destroy();
+if (msg === '!stop') {
+  loopEnabled = false; // Optional: disable looping
 
-    return message.reply(". . .");
+  if (player) {
+    player.stop(true);
   }
+
+  return message.reply(". . .");
+}
 
   // --------------------
   // !verify (EVERYONE)
@@ -314,8 +315,16 @@ client.user.setPresence({
     });
 
      player = createAudioPlayer();
-    connection.subscribe(player);
 
+player.on('stateChange', (oldState, newState) => {
+  if (newState.status === AudioPlayerStatus.Idle && loopEnabled) {
+    player.stop();
+player.play(createAudioResource('./music.mp3'));
+  }
+});
+
+connection.subscribe(player);
+ 
     console.log("🎧 Joined VC on startup");
   } catch (err) {
     console.error("Failed to join VC:", err);
