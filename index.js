@@ -97,6 +97,10 @@ client.on('messageCreate', async (message) => {
     return message.reply('hamooding!');
   }
 
+   if (msg === '@DKL Automation') {
+    return message.reply('DKL Automation at your service!');
+  }
+
   // 💰 MONEY (admin only)
   if (msg === '!money') {
     if (!message.member.permissions.has("Administrator")) {
