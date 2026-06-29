@@ -71,6 +71,8 @@ let player;
 let loopEnabled = false;
 let currentResource = null;
 
+let manualStop = false;
+
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
@@ -148,15 +150,16 @@ if (msg === '!loop off') {
 
   // ⛔ STOP MUSIC
 if (msg === '!stop') {
-  loopEnabled = false; // Optional: disable looping
+  loopEnabled = false;
+  manualStop = true;
 
   if (player) {
-    player.stop(true);
+    player.stop(true); // ONLY stops audio
   }
 
   return message.reply(". . .");
 }
-
+  
   // --------------------
   // !verify (EVERYONE)
   // --------------------
@@ -318,8 +321,8 @@ client.user.setPresence({
 
 player.on('stateChange', (oldState, newState) => {
   if (newState.status === AudioPlayerStatus.Idle && loopEnabled) {
-    player.stop();
-player.play(createAudioResource('./music.mp3'));
+    const resource = createAudioResource('./music.mp3');
+    player.play(resource);
   }
 });
 
@@ -344,11 +347,14 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 
 client.on('voiceStateUpdate', (oldState, newState) => {
-  if (
-    oldState.member.id === client.user.id &&
-    oldState.channelId &&
-    !newState.channelId
-  ) {
+  if (oldState.member.id !== client.user.id) return;
+
+  if (manualStop) {
+    manualStop = false;
+    return;
+  }
+
+  if (oldState.channelId && !newState.channelId) {
     console.log("Bot was disconnected. Rejoining in 2 seconds...");
 
     setTimeout(() => {
