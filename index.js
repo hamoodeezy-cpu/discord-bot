@@ -2,7 +2,9 @@ const {
     Client,
     GatewayIntentBits,
     ActivityType,
-    Collection
+    Collection,
+    REST,
+    Routes
 } = require('discord.js');
 const express = require('express');
 
@@ -317,6 +319,28 @@ app.get('/roles/:discordId', (req, res) => {
 // --------------------
 client.once('ready', async () => {
   console.log(`Logged in as ${client.user.tag}`);
+    try {
+
+    const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
+
+    const commands = [];
+
+    client.commands.forEach(command => {
+        commands.push(command.data.toJSON());
+    });
+
+    await rest.put(
+        Routes.applicationCommands(client.user.id),
+        {
+            body: commands
+        }
+    );
+
+    console.log("✅ Slash commands registered.");
+
+} catch (err) {
+    console.error(err);
+}
 
 client.user.setPresence({
   activities: [
