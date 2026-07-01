@@ -393,6 +393,41 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 });
 
 // --------------------
+// SLASH COMMAND HANDLER
+// --------------------
+client.on("interactionCreate", async (interaction) => {
+
+    if (!interaction.isChatInputCommand()) return;
+
+    const command = client.commands.get(interaction.commandName);
+
+    if (!command) return;
+
+    try {
+
+        await command.execute(interaction);
+
+    } catch (error) {
+
+        console.error(error);
+
+        if (interaction.replied || interaction.deferred) {
+            await interaction.followUp({
+                content: "❌ An error occurred while executing this command.",
+                ephemeral: true
+            });
+        } else {
+            await interaction.reply({
+                content: "❌ An error occurred while executing this command.",
+                ephemeral: true
+            });
+        }
+
+    }
+
+});
+
+// --------------------
 // LOGIN BOT
 // --------------------
 client.login(process.env.TOKEN);
