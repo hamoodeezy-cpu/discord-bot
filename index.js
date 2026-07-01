@@ -104,22 +104,15 @@ client.on('messageCreate', async (message) => {
     if (msg.startsWith('!brm5')) {
   if (!message.member) return;
 
-  const args = msg.split(' ');
-  const code = args.slice(1).join(' ');
-
-  if (!code) {
-    return message.reply('❌ Usage: !brm5 <server code>');
-  }
-
   const brm5Message = `## *BRM5 Deployment*
 
-Hello <@&1313620498768203827> , <@&1519889298785304687> , <@&1519889157927731270>
+Hello <@&1313620498768203827> , <@&1519889298785304687>  , <@&1519889157927731270> 
 
 A BRM5 deployment is being hosted in 15 minutes, start joining now! Wait for further instructions in https://discordapp.com/channels/1302283181998997616/1512985724948054236
 
-Server Code Is:
-\`\`\`${code}\`\`\`
+https://www.roblox.com/games/2916899287/Blackhawk-Rescue-Mission-5#!/store
 
+Server Code Is: ```40ec6a81-b298-4f64-85e9-2aa1509ea3b5```
 In-game: Red Squad
 
 ***React to this message if attending!!!***`;
