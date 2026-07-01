@@ -104,27 +104,31 @@ reason
 });
 
 const embed = new EmbedBuilder()
-.setColor("#57F287")
+.setColor("#2B2D31")
 .setTitle("PROMOTION!")
 .setDescription(
-`The HR team has seen your relentless dedication and hard work towards **Death Korps Legion**. They have decided to grant you a promotion for your hard work. Do not let this go to waste. We hope to see you climb the ranks in the future.
+`The HR team has seen your relentless dedication and hard work towards DKL. They have decided to grant you a promotion for your hard work, do not let this go to waste. We hope to see you climb the ranks in the future.
 
-**Congratulations!**
-
-\`\`\`
-User: ${user}
+Congrats!`
+)
+.addFields(
+{
+name: "\u200B",
+value:
+`>>> User: ${user}
 Previous Rank: ${oldRank}
 Promoted Rank: ${newRank}
-Reason: ${reason}
-\`\`\`
-
-\`\`\`
-Signed: ${interaction.user}
-\`\`\``
+Reason: ${reason}`
+},
+{
+name: "\u200B",
+value:
+`>>> Signed: ${interaction.user}`
+}
 )
-.setImage("https://cdn.discordapp.com/attachments/1513019398552813669/1515180378879426584/content.png?ex=6a4674f1&is=6a452371&hm=d4c68ce56aabd61eed2adb258609d2ba839c415733ce66c070bccb1b08d56d76&")
+.setImage("https://cdn.discordapp.com/attachments/1513019398552813669/1515180378879426584/content.png")
 .setFooter({
-    text: `☠️ Last updated on | ${new Date().toLocaleString()}`
+text: `☠️ Last updated on | ${new Date().toLocaleString()}`
 })
 .setTimestamp();
 
