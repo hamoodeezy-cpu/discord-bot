@@ -10,7 +10,7 @@ const {
 } = require("../utils/promotions");
 
 const STAFF_ROLE = "1355938863222362144";
-const LOG_CHANNEL = "PUT_YOUR_PROMOTION_LOG_CHANNEL_ID";
+const LOG_CHANNEL = "1508903873291751484";
 
 function hasPerm(member) {
     return (
