@@ -128,7 +128,7 @@ value:
 )
 .setImage("https://cdn.discordapp.com/attachments/1513019398552813669/1515180378879426584/content.png")
 .setFooter({
-text: `<:mask:1508232966877483049> Last updated on | ${new Date().toLocaleString()}`
+text: `<Last updated on | ${new Date().toLocaleString()}`
 })
 .setTimestamp();
 
