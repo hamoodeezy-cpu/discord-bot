@@ -15,6 +15,11 @@ const {
 const fs = require('fs');
 app.use(express.json());
 
+const {
+    loadData,
+    saveData
+} = require("./commands/infraction");
+
 // --------------------
 // DISCORD BOT
 // --------------------
