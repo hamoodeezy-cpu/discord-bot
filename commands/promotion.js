@@ -103,16 +103,29 @@ newRank,
 reason
 });
 
-const embed=new EmbedBuilder()
-.setTitle("Promotion")
-.setColor("Green")
-.addFields(
-{name:"User",value:`<@${user.id}>`},
-{name:"Previous Rank",value:oldRank},
-{name:"New Rank",value:newRank},
-{name:"Reason",value:reason},
-{name:"Promoted By",value:`<@${interaction.user.id}>`}
+const embed = new EmbedBuilder()
+.setColor("#57F287")
+.setTitle("PROMOTION!")
+.setDescription(
+`The HR team has seen your relentless dedication and hard work towards **Death Korps Legion**. They have decided to grant you a promotion for your hard work. Do not let this go to waste. We hope to see you climb the ranks in the future.
+
+**Congratulations!**
+
+\`\`\`
+User: ${user}
+Previous Rank: ${oldRank}
+Promoted Rank: ${newRank}
+Reason: ${reason}
+\`\`\`
+
+\`\`\`
+Signed: ${interaction.user}
+\`\`\``
 )
+.setImage("https://cdn.discordapp.com/attachments/1513019398552813669/1515180378879426584/content.png?ex=6a4674f1&is=6a452371&hm=d4c68ce56aabd61eed2adb258609d2ba839c415733ce66c070bccb1b08d56d76&")
+.setFooter({
+    text: `☠️ Last updated on | ${new Date().toLocaleString()}`
+})
 .setTimestamp();
 
 const log=interaction.guild.channels.cache.get(LOG_CHANNEL);
