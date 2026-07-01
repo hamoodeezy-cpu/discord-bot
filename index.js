@@ -101,6 +101,36 @@ client.on('messageCreate', async (message) => {
 
   const msg = message.content;
 
+    if (msg.startsWith('!brm5')) {
+  if (!message.member) return;
+
+  const args = msg.split(' ');
+  const code = args.slice(1).join(' ');
+
+  if (!code) {
+    return message.reply('❌ Usage: !brm5 <server code>');
+  }
+
+  const brm5Message = `## *BRM5 Deployment*
+
+Hello <@&1313620498768203827> , <@&1519889298785304687> , <@&1519889157927731270>
+
+A BRM5 deployment is being hosted in 15 minutes, start joining now! Wait for further instructions in https://discordapp.com/channels/1302283181998997616/1512985724948054236
+
+Server Code Is:
+\`\`\`${code}\`\`\`
+
+In-game: Red Squad
+
+***React to this message if attending!!!***`;
+
+  const sent = await message.channel.send(brm5Message);
+
+  await sent.react('✅');
+
+  return;
+}
+
   // ❌ DELETE SERVER (admin only)
   if (msg === '!delete server') {
     if (!message.member.permissions.has("Administrator")) {
