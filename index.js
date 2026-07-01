@@ -17,6 +17,7 @@ const {
   NoSubscriberBehavior
 } = require('@discordjs/voice');
 
+
 const fs = require('fs');
 app.use(express.json());
 
@@ -31,6 +32,23 @@ const client = new Client({
     GatewayIntentBits.GuildVoiceStates
   ]
 });
+
+// --------------------
+// SLASH COMMAND LOADER
+// --------------------
+client.commands = new Collection();
+
+const commandFiles = fs
+  .readdirSync("./commands")
+  .filter(file => file.endsWith(".js"));
+
+for (const file of commandFiles) {
+  const command = require(`./commands/${file}`);
+
+  if (command.data && command.execute) {
+    client.commands.set(command.data.name, command);
+  }
+}
 
 // --------------------
 // STORAGE
