@@ -23,47 +23,94 @@ function hasPerm(member) {
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("infraction")
-        .setDescription("Infraction system")
+        .setDescription("Manage user infractions")
 
-        .addSubcommand(s =>
-            s.setName("issue")
-                .setDescription("Issue infraction")
-                .addUserOption(o => o.setName("user").setRequired(true))
-                .addStringOption(o => o.setName("type").setRequired(true))
-                .addStringOption(o => o.setName("reason").setRequired(true))
-                .addStringOption(o => o.setName("notes"))
-                .addStringOption(o => o.setName("expiration"))
+        .addSubcommand(sub =>
+            sub
+                .setName("issue")
+                .setDescription("Issue an infraction to a user")
+                .addUserOption(option =>
+                    option
+                        .setName("user")
+                        .setDescription("User to issue the infraction to")
+                        .setRequired(true)
+                )
+                .addStringOption(option =>
+                    option
+                        .setName("type")
+                        .setDescription("Type of punishment (Strike, Warning, Suspension, etc.)")
+                        .setRequired(true)
+                )
+                .addStringOption(option =>
+                    option
+                        .setName("reason")
+                        .setDescription("Reason for the infraction")
+                        .setRequired(true)
+                )
+                .addStringOption(option =>
+                    option
+                        .setName("notes")
+                        .setDescription("Additional notes")
+                        .setRequired(false)
+                )
+                .addStringOption(option =>
+                    option
+                        .setName("expiration")
+                        .setDescription("Expiration date or Never")
+                        .setRequired(false)
+                )
         )
 
-        .addSubcommand(s =>
-            s.setName("list")
-                .setDescription("View user infractions")
-                .addUserOption(o => o.setName("user").setRequired(true))
+        .addSubcommand(sub =>
+            sub
+                .setName("list")
+                .setDescription("View all infractions for a user")
+                .addUserOption(option =>
+                    option
+                        .setName("user")
+                        .setDescription("User to view")
+                        .setRequired(true)
+                )
         )
 
-        .addSubcommand(s =>
-            s.setName("case")
-                .setDescription("View case")
-                .addIntegerOption(o => o.setName("id").setRequired(true))
+        .addSubcommand(sub =>
+            sub
+                .setName("case")
+                .setDescription("View a case")
+                .addIntegerOption(option =>
+                    option
+                        .setName("id")
+                        .setDescription("Case ID")
+                        .setRequired(true)
+                )
         )
 
-        .addSubcommand(s =>
-            s.setName("remove")
-                .setDescription("Remove case")
-                .addIntegerOption(o => o.setName("id").setRequired(true))
+        .addSubcommand(sub =>
+            sub
+                .setName("remove")
+                .setDescription("Remove a case")
+                .addIntegerOption(option =>
+                    option
+                        .setName("id")
+                        .setDescription("Case ID")
+                        .setRequired(true)
+                )
         ),
 
     async execute(interaction) {
+
         if (!hasPerm(interaction.member)) {
-            return interaction.reply({ content: "❌ No permission.", ephemeral: true });
+            return interaction.reply({
+                content: "❌ You do not have permission to use this command.",
+                ephemeral: true
+            });
         }
 
         const sub = interaction.options.getSubcommand();
-
         const logChannel = interaction.guild.channels.cache.get(LOG_CHANNEL);
 
-        // ISSUE
         if (sub === "issue") {
+
             const user = interaction.options.getUser("user");
             const type = interaction.options.getString("type");
             const reason = interaction.options.getString("reason");
@@ -81,58 +128,102 @@ module.exports = {
 
             const embed = new EmbedBuilder()
                 .setTitle(`Infraction #${inf.caseId}`)
+                .setColor("Red")
                 .addFields(
-                    { name: "User", value: `<@${user.id}>` },
-                    { name: "Type", value: type },
+                    { name: "User", value: `<@${user.id}>`, inline: true },
+                    { name: "Moderator", value: `<@${interaction.user.id}>`, inline: true },
+                    { name: "Punishment", value: type, inline: true },
                     { name: "Reason", value: reason },
                     { name: "Notes", value: notes },
                     { name: "Expires", value: expiration }
                 )
-                .setColor("Red");
+                .setTimestamp();
 
-            if (logChannel) logChannel.send({ embeds: [embed] });
+            if (logChannel) {
+                logChannel.send({ embeds: [embed] });
+            }
 
             try {
-                user.send({ embeds: [embed] });
+                await user.send({ embeds: [embed] });
             } catch {}
 
-            return interaction.reply({ content: `✅ Case #${inf.caseId} created.`, ephemeral: true });
+            return interaction.reply({
+                content: `✅ Successfully created Case #${inf.caseId}.`,
+                ephemeral: true
+            });
         }
 
-        // LIST
         if (sub === "list") {
+
             const user = interaction.options.getUser("user");
             const list = getUserInfractions(user.id);
 
             if (!list.length) {
-                return interaction.reply("No infractions.");
+                return interaction.reply({
+                    content: "No infractions found.",
+                    ephemeral: true
+                });
             }
 
-            const text = list.map(i =>
-                `#${i.caseId} | ${i.type} | ${i.reason}`
-            ).join("\n");
+            const embed = new EmbedBuilder()
+                .setTitle(`${user.username}'s Infractions`)
+                .setColor("Blue");
 
-            return interaction.reply({ content: "```" + text + "```", ephemeral: true });
-        }
-
-        // CASE
-        if (sub === "case") {
-            const id = interaction.options.getInteger("id");
-            const c = getCase(id);
-
-            if (!c) return interaction.reply("Not found.");
+            list.forEach(i => {
+                embed.addFields({
+                    name: `Case #${i.caseId}`,
+                    value: `${i.type} • ${i.reason}`
+                });
+            });
 
             return interaction.reply({
-                content: `Case #${c.caseId}\nUser: <@${c.userId}>\nReason: ${c.reason}`
+                embeds: [embed],
+                ephemeral: true
             });
         }
 
-        // REMOVE
-        if (sub === "remove") {
+        if (sub === "case") {
+
             const id = interaction.options.getInteger("id");
+            const c = getCase(id);
+
+            if (!c) {
+                return interaction.reply({
+                    content: "❌ Case not found.",
+                    ephemeral: true
+                });
+            }
+
+            const embed = new EmbedBuilder()
+                .setTitle(`Case #${c.caseId}`)
+                .setColor("Orange")
+                .addFields(
+                    { name: "User", value: `<@${c.userId}>` },
+                    { name: "Moderator", value: `<@${c.moderatorId}>` },
+                    { name: "Punishment", value: c.type },
+                    { name: "Reason", value: c.reason },
+                    { name: "Notes", value: c.notes },
+                    { name: "Expires", value: c.expiration }
+                )
+                .setTimestamp(new Date(c.date));
+
+            return interaction.reply({
+                embeds: [embed],
+                ephemeral: true
+            });
+        }
+
+        if (sub === "remove") {
+
+            const id = interaction.options.getInteger("id");
+
             removeCase(id);
 
-            return interaction.reply(`Removed case #${id}`);
+            return interaction.reply({
+                content: `✅ Removed Case #${id}.`,
+                ephemeral: true
+            });
         }
+
     }
 };
