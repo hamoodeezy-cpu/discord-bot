@@ -112,7 +112,7 @@ A BRM5 deployment is being hosted in 15 minutes, start joining now! Wait for fur
 
 https://www.roblox.com/games/2916899287/Blackhawk-Rescue-Mission-5#!/store
 
-Server Code Is: ```40ec6a81-b298-4f64-85e9-2aa1509ea3b5```
+Server Code Is: **40ec6a81-b298-4f64-85e9-2aa1509ea3b5**
 In-game: Red Squad
 
 ***React to this message if attending!!!***`;
